@@ -27,16 +27,18 @@
 //   basso-destra, a sinistra riflessa, dall'alto-destra al basso-sinistra.
 //   Lo sfasamento del contrasto fra i lati fa apparire la griglia gonfiata.
 // Parametri critici: per ciascuno, il nome della variabile
-//   scalaPunti = lato del puntino rispetto al lato del quadrato:
-//     effetto più evidente con scalaPunti piccola (puntino minuscolo),
+//   scalaPunti = lato del puntino rispetto al lato del quadrato
+//     effetto più evidente con scalaPunti piccola (puntino minuscolo)
 //     nessun effetto con scalaPunti grande (il puntino copre il quadrato)
-//   scartoPuntino = distanza del puntino dal lato del suo quadrato:
-//     effetto più evidente con scartoPuntino piccolo,
-//     effetto attenuato con scartoPuntino grande (puntini verso il centro del riquadro)
+//   scartoPuntino = distanza del puntino dal lato del suo quadrato
+//     effetto più evidente con scartoPuntino piccolo
+//     nessun effetto con scartoPuntino grande (puntini verso il centro del riquadro)
 //   raggioRombo = quanto è estesa la zona a rombo che ospita i puntini
-//   colore del puntino: sempre opposto a quello dell'ospite, deciso in draw():
-//     nessun effetto se il puntino ha lo stesso colore del quadrato
-//   forma quadrata e opacità piena: fisse, non variabili
+//     effetto più evidente con raggioRombo esteso alla zona con il motivo
+//     nessun effetto con raggioRombo molto piccolo (nessun puntino visibile)
+//   colore del puntino = colore opposto a quello dell'ospite, deciso in draw()
+//     effetto più evidente con colori opposti (bianco/nero)
+//     nessun effetto con colore del puntino uguale a quello dell'ospite
 //
 // Movimento: ogni tanto i puntini lasciano il loro posto nel motivo e si
 //   spostano in alto, in basso o in diagonale dentro lo stesso riquadro,
