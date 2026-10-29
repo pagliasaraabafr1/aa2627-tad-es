@@ -40,11 +40,10 @@
 //     effetto più evidente con colori opposti (bianco/nero)
 //     nessun effetto con colore del puntino uguale a quello dell'ospite
 //
-// Movimento: ogni tanto i puntini lasciano il loro posto nel motivo e si
-//   spostano in alto, in basso o in diagonale dentro lo stesso riquadro,
-//   una posizione ogni fotogrammiPerPosizione fotogrammi. Lo spostamento
-//   non è un salto: dura fotogrammiDiTransizione fotogrammi e procede
-//   con uno smoothstep, più rapido al centro e morbido agli estremi.
+// Movimento: il rombo centrale si gonfia dal centro verso i bordi e poi rientra,
+//   come una superficie che sporge verso chi guarda. I quadrati neri ai margini
+//   restano statici, tranne le griglie 3x3 agli angoli, che si gonfiano in
+//   modo speculare dal centro verso l'esterno.
 
 // --- tela ---
 const larghezzaTela = 600;
@@ -56,6 +55,13 @@ const numeroRighe = 13;
 const latoQuadrato = larghezzaTela / numeroColonne;
 const colonnaCentrale = Math.floor(numeroColonne / 2); // la colonna di mezzo ospita il motivo ruotato
 const rigaCentrale = Math.floor(numeroRighe / 2); // il quadrato al centro di questa riga resta pulito
+const colonnaDaEliminare = 9; // numerazione da 1
+const rigaDaEliminare = 5;    // numerazione da 1
+const primaColonnaZonaSinistra = 0;
+const primaColonnaZonaAngolo = numeroColonne - 3;
+const primaRigaZonaAngolo = 0;
+const latoZonaAngolo = 3;
+const ultimaRigaZonaAngolo = numeroRighe - latoZonaAngolo;
 
 // --- parametri critici ---
 const scalaPunti = 0.15;   // lato del puntino / lato del quadrato
@@ -65,8 +71,15 @@ const quadratiDiagonali = 4; // quanti quadrati a destra del centro, nella riga 
 const righeDiagonali = 3;    // quante righe sopra e sotto il centro hanno la diagonale
 
 // --- movimento ---
-const fotogrammiPerPosizione = 60;    // ogni quanti fotogrammi i puntini cambiano posizione
-const fotogrammiDiTransizione = 40;   // quanti fotogrammi dura lo spostamento graduale
+const fotogrammiPerPosizione = 300;   // ogni quanti fotogrammi i puntini cambiano posizione
+const fotogrammiDiTransizione = 300;  // quanti fotogrammi dura lo spostamento graduale
+const ampiezzaGonfiore = 0.75;        // intensità massima del rigonfiamento centrale
+const velocitaGonfiore = 0.012;       // velocità del gonfiarsi e rientrare
+const velocitaGonfioreEsterno = 0.03;  // velocità del movimento nei quadrati esterni
+const raggioGonfioreAngolo = latoQuadrato * latoZonaAngolo;
+const quadratiNeriPerMargine = 5;     // quadrati neri coinvolti su ogni margine
+const primoQuadratoMargine = colonnaCentrale - quadratiNeriPerMargine + 1;
+const distanzaTraQuadratiNeri = 2;    // distanza fra i quadrati neri consecutivi della scacchiera
 
 const latoPuntino = latoQuadrato * scalaPunti;
 
@@ -76,22 +89,42 @@ function setup() {
 
 function draw() {
   background(255);
+  const faseGonfiore = (frameCount * velocitaGonfiore) % (2 * Math.PI);
+  const intensitaGonfiore = cos(faseGonfiore);
+  const intensitaGonfioreEsterno = cos(frameCount * velocitaGonfioreEsterno);
 
   for (let riga = 0; riga < numeroRighe; riga++) {
     for (let colonna = 0; colonna < numeroColonne; colonna++) {
       const x = colonna * latoQuadrato;
       const y = riga * latoQuadrato;
-      // il quadrato è scuro o chiaro secondo la somma di riga e colonna
+      const nelRombo = dentroRombo(riga, colonna);
+      const sopraIlBuco = colonna === colonnaDaEliminare - 1
+        && riga === rigaDaEliminare - 2;
+      const nelMovimento = nelRombo || sopraIlBuco;
+      const nellaZonaAngolo = dentroZonaAngolo(colonna, riga);
+      const intensitaElemento = nellaZonaAngolo ? intensitaGonfioreEsterno : intensitaGonfiore;
+      if (quadratoMargine(colonna, riga)) {
+        continue;
+      }
       const scuro = (riga + colonna) % 2 === 0;
+
+      const angoloAltoSinistra = coordElemento(x, y, colonna, riga, nelMovimento, nellaZonaAngolo, intensitaElemento);
+      const angoloAltoDestra = coordElemento(x + latoQuadrato, y, colonna, riga, nelMovimento, nellaZonaAngolo, intensitaElemento);
+      const angoloBassoDestra = coordElemento(x + latoQuadrato, y + latoQuadrato, colonna, riga, nelMovimento, nellaZonaAngolo, intensitaElemento);
+      const angoloBassoSinistra = coordElemento(x, y + latoQuadrato, colonna, riga, nelMovimento, nellaZonaAngolo, intensitaElemento);
 
       noStroke();
       fill(scuro ? 0 : 255);
-      rect(x, y, latoQuadrato, latoQuadrato);
+      beginShape();
+      vertex(angoloAltoSinistra[0], angoloAltoSinistra[1]);
+      vertex(angoloAltoDestra[0], angoloAltoDestra[1]);
+      vertex(angoloBassoDestra[0], angoloBassoDestra[1]);
+      vertex(angoloBassoSinistra[0], angoloBassoSinistra[1]);
+      endShape(CLOSE);
 
       // il puntino compare solo nella zona centrale a rombo
-      const distanzaDalCentro = abs(x + latoQuadrato / 2 - larghezzaTela / 2)
-                              + abs(y + latoQuadrato / 2 - altezzaTela / 2);
-      if (distanzaDalCentro <= raggioRombo && !(colonna === colonnaCentrale && riga === rigaCentrale)) {
+      if (nelMovimento
+          && !(colonna === colonnaCentrale && riga === rigaCentrale)) {
         // distanze dai lati del riquadro: il puntino resta staccato dal bordo
         const vicino = scartoPuntino;
         const lontano = latoQuadrato - latoPuntino - scartoPuntino;
@@ -121,18 +154,12 @@ function draw() {
           secondoX = latoX; secondoY = lontano;
         }
 
-        // movimento: i puntini si spostano da una posizione del ciclo alla
-        // successiva in modo graduale; la posizione di arrivo dipende dalla
-        // fase corrente, quella di partenza dalla fase precedente
+        // i puntini alternano quattro posizioni con transizioni graduali
         const fase = Math.floor(frameCount / fotogrammiPerPosizione) % 4;
         const fotogrammiNellaFase = frameCount % fotogrammiPerPosizione;
-
         const partenza = coordinateFase((fase + 3) % 4, primoX, primoY, secondoX, secondoY, vicino, lontano);
         const arrivo = coordinateFase(fase, primoX, primoY, secondoX, secondoY, vicino, lontano);
-
-        // lo smoothstep rende lo spostamento morbido all'inizio e alla fine;
-        // al termine della transizione i puntini restano fermi fino alla fase dopo
-        let t = fotogrammiNellaFase < fotogrammiDiTransizione ? fotogrammiNellaFase / fotogrammiDiTransizione : 1;
+        let t = Math.min(fotogrammiNellaFase / fotogrammiDiTransizione, 1);
         t = t * t * (3 - 2 * t);
 
         primoX = lerp(partenza[0], arrivo[0], t);
@@ -140,30 +167,168 @@ function draw() {
         secondoX = lerp(partenza[2], arrivo[2], t);
         secondoY = lerp(partenza[3], arrivo[3], t);
 
-        // il puntino ha sempre il colore opposto a quello dell'ospite
+        // i puntini seguono la stessa deformazione dei quadrati del rombo
         fill(scuro ? 255 : 0);
-        rect(x + primoX, y + primoY, latoPuntino, latoPuntino);
-        rect(x + secondoX, y + secondoY, latoPuntino, latoPuntino);
+        const xPrimo = x + primoX + latoPuntino / 2;
+        const yPrimo = y + primoY + latoPuntino / 2;
+        const xSecondo = x + secondoX + latoPuntino / 2;
+        const ySecondo = y + secondoY + latoPuntino / 2;
+        const centroPrimo = coordElemento(xPrimo, yPrimo, colonna, riga, nelMovimento, nellaZonaAngolo, intensitaElemento);
+        const centroSecondo = coordElemento(xSecondo, ySecondo, colonna, riga, nelMovimento, nellaZonaAngolo, intensitaElemento);
+        const scalaPrimo = fattoreElemento(xPrimo, yPrimo, colonna, nellaZonaAngolo, intensitaElemento);
+        const scalaSecondo = fattoreElemento(xSecondo, ySecondo, colonna, nellaZonaAngolo, intensitaElemento);
+        rect(centroPrimo[0] - latoPuntino * scalaPrimo / 2, centroPrimo[1] - latoPuntino * scalaPrimo / 2, latoPuntino * scalaPrimo, latoPuntino * scalaPrimo);
+        rect(centroSecondo[0] - latoPuntino * scalaSecondo / 2, centroSecondo[1] - latoPuntino * scalaSecondo / 2, latoPuntino * scalaSecondo, latoPuntino * scalaSecondo);
       }
+    }
+  }
+  disegnaQuadratiMargine();
+}
+
+function coordElemento(x, y, colonna, riga, nelRombo, nellaZonaAngolo, intensitaGonfiore) {
+  if (nellaZonaAngolo) {
+    return coordGonfiataAngolo(x, y, colonna, intensitaGonfiore);
+  }
+  return nelRombo ? coordGonfiata(x, y, intensitaGonfiore) : [x, y];
+}
+
+function coordGonfiataAngolo(x, y, colonna, intensitaGonfiore) {
+  const primaColonnaZona = colonna < colonnaCentrale
+    ? primaColonnaZonaSinistra
+    : primaColonnaZonaAngolo;
+  const primaRigaZona = y < altezzaTela / 2
+    ? primaRigaZonaAngolo
+    : ultimaRigaZonaAngolo;
+  const centroZonaX = (primaColonnaZona + latoZonaAngolo / 2) * latoQuadrato;
+  const centroZonaY = (primaRigaZona + latoZonaAngolo / 2) * latoQuadrato;
+  return coordGonfiataConCentro(
+    x,
+    y,
+    centroZonaX,
+    centroZonaY,
+    raggioGonfioreAngolo,
+    intensitaGonfiore
+  );
+}
+
+function dentroZonaAngolo(colonna, riga) {
+  const nellaZonaSinistra = colonna >= primaColonnaZonaSinistra
+    && colonna < primaColonnaZonaSinistra + latoZonaAngolo;
+  const nellaZonaDestra = colonna >= primaColonnaZonaAngolo
+    && colonna < primaColonnaZonaAngolo + latoZonaAngolo;
+  const nellaRigaSuperiore = riga >= primaRigaZonaAngolo
+    && riga < primaRigaZonaAngolo + latoZonaAngolo;
+  const nellaRigaInferiore = riga >= ultimaRigaZonaAngolo
+    && riga < ultimaRigaZonaAngolo + latoZonaAngolo;
+  return (nellaRigaSuperiore || nellaRigaInferiore) && (nellaZonaSinistra || nellaZonaDestra);
+}
+
+function fattoreGonfiore(x, y, intensita) {
+  const distanzaDalCentro = abs(x - larghezzaTela / 2) + abs(y - altezzaTela / 2);
+  const influenzaCentrale = Math.max(0, 1 - distanzaDalCentro / raggioRombo);
+  return 1 + ampiezzaGonfiore * intensita * influenzaCentrale * influenzaCentrale;
+}
+
+function quadratoMargine(colonna, riga) {
+  const indiceNero = colonna >= primoQuadratoMargine
+    && colonna < primoQuadratoMargine + 2 * quadratiNeriPerMargine
+    && (colonna - primoQuadratoMargine) % 2 === 0;
+  const rigaNera = riga >= primoQuadratoMargine
+    && riga < primoQuadratoMargine + 2 * quadratiNeriPerMargine
+    && (riga - primoQuadratoMargine) % 2 === 0;
+
+  return !dentroZonaAngolo(colonna, riga)
+      && (((riga === 0 || riga === numeroRighe - 1) && indiceNero)
+      || ((colonna === 0 || colonna === numeroColonne - 1) && rigaNera));
+}
+
+function disegnaQuadratiMargine() {
+  noStroke();
+  fill(255);
+  for (let indice = 0; indice < quadratiNeriPerMargine; indice++) {
+    const coordinata = primoQuadratoMargine + 2 * indice;
+    if (!dentroZonaAngolo(coordinata, 0) && !dentroZonaAngolo(coordinata, numeroRighe - 1)) {
+      rect(coordinata * latoQuadrato, 0, latoQuadrato, latoQuadrato);
+    }
+    if (!dentroZonaAngolo(coordinata, numeroRighe - 1)) {
+      rect(coordinata * latoQuadrato, altezzaTela - latoQuadrato, latoQuadrato, latoQuadrato);
+    }
+    if (!dentroZonaAngolo(0, coordinata)) {
+      rect(0, coordinata * latoQuadrato, latoQuadrato, latoQuadrato);
+    }
+    if (!dentroZonaAngolo(numeroColonne - 1, coordinata)) {
+      rect(larghezzaTela - latoQuadrato, coordinata * latoQuadrato, latoQuadrato, latoQuadrato);
+    }
+  }
+
+  fill(0);
+  for (let indice = 0; indice < quadratiNeriPerMargine; indice++) {
+    const coordinata = primoQuadratoMargine + 2 * indice;
+    if (!dentroZonaAngolo(coordinata, 0) && !dentroZonaAngolo(coordinata, numeroRighe - 1)) {
+      rect(coordinata * latoQuadrato, 0, latoQuadrato, latoQuadrato);
+    }
+    if (!dentroZonaAngolo(coordinata, numeroRighe - 1)) {
+      rect(coordinata * latoQuadrato, altezzaTela - latoQuadrato, latoQuadrato, latoQuadrato);
+    }
+    if (!dentroZonaAngolo(0, coordinata)) {
+      rect(0, coordinata * latoQuadrato, latoQuadrato, latoQuadrato);
+    }
+    if (!dentroZonaAngolo(numeroColonne - 1, coordinata)) {
+      rect(larghezzaTela - latoQuadrato, coordinata * latoQuadrato, latoQuadrato, latoQuadrato);
     }
   }
 }
 
-// le quattro coordinate dei due puntini per una data fase del movimento;
-// fase 0 = posizione del motivo, 1 = alto, 2 = basso, 3 = diagonale
+function coordGonfiata(x, y, intensita) {
+  return coordGonfiataConCentro(x, y, larghezzaTela / 2, altezzaTela / 2, raggioRombo, intensita);
+}
+
+function coordGonfiataConCentro(x, y, centroX, centroY, raggio, intensita) {
+  const distanzaDalCentro = abs(x - centroX) + abs(y - centroY);
+  const influenzaCentrale = Math.max(0, 1 - distanzaDalCentro / raggio);
+  const fattore = 1 + ampiezzaGonfiore * intensita * influenzaCentrale * influenzaCentrale;
+  return [
+    centroX + (x - centroX) * fattore,
+    centroY + (y - centroY) * fattore
+  ];
+}
+
+function fattoreElemento(x, y, colonna, nellaZonaAngolo, intensitaGonfiore) {
+  if (nellaZonaAngolo) {
+    const primaColonnaZona = colonna < colonnaCentrale
+      ? primaColonnaZonaSinistra
+      : primaColonnaZonaAngolo;
+    const primaRigaZona = y < altezzaTela / 2
+      ? primaRigaZonaAngolo
+      : ultimaRigaZonaAngolo;
+    const centroZonaX = (primaColonnaZona + latoZonaAngolo / 2) * latoQuadrato;
+    const centroZonaY = (primaRigaZona + latoZonaAngolo / 2) * latoQuadrato;
+    return fattoreGonfioreConCentro(x, y, centroZonaX, centroZonaY, raggioGonfioreAngolo, intensitaGonfiore);
+  }
+  return fattoreGonfiore(x, y, intensitaGonfiore);
+}
+
+function fattoreGonfioreConCentro(x, y, centroX, centroY, raggio, intensita) {
+  const distanzaDalCentro = abs(x - centroX) + abs(y - centroY);
+  const influenzaCentrale = Math.max(0, 1 - distanzaDalCentro / raggio);
+  return 1 + ampiezzaGonfiore * intensita * influenzaCentrale * influenzaCentrale;
+}
+
+function dentroRombo(riga, colonna) {
+  const centroX = colonna * latoQuadrato + latoQuadrato / 2;
+  const centroY = riga * latoQuadrato + latoQuadrato / 2;
+  return abs(centroX - larghezzaTela / 2) + abs(centroY - altezzaTela / 2) <= raggioRombo;
+}
+
 function coordinateFase(fase, motivoX1, motivoY1, motivoX2, motivoY2, vicino, lontano) {
   if (fase === 1) {
-    // alto: entrambi sul lato alto del riquadro
     return [vicino, vicino, lontano, vicino];
   }
   if (fase === 2) {
-    // basso: entrambi sul lato basso
     return [vicino, lontano, lontano, lontano];
   }
   if (fase === 3) {
-    // diagonale: agli estremi opposti del riquadro
     return [vicino, vicino, lontano, lontano];
   }
-  // fase 0: i puntini restano al loro posto del motivo
   return [motivoX1, motivoY1, motivoX2, motivoY2];
 }
