@@ -4,7 +4,7 @@ description: Personalizza il repository con il nome dello studente e il suo indi
 
 Preparare il repository appena clonato.
 
-1. Ricavare il nome utente di GitHub dall'indirizzo del repository remoto: !`git remote -v`
+1. Ricavare il nome utente di GitHub dall'indirizzo del repository remoto: eseguire `git remote -v`
 2. Chiedere allo studente nome e cognome, se non si ricavano già dalla configurazione di Git.
 3. Sostituire `Nome Cognome` nell'`index.html` della radice con il nome vero.
 4. Nel `README.md`, sostituire `NOMEUTENTE` con il nome utente ricavato, così l'indirizzo del proprio sito è quello giusto, e aggiungere in cima, subito dopo il titolo, la riga con il collegamento:

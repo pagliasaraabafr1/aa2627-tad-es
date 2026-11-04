@@ -12,7 +12,7 @@ Servono **Visual Studio Code**, **Git**, **OpenCode** e due estensioni, OpenCode
 
 Serve anche un **profilo su [github.com](https://github.com/signup)**. Il nome utente comparirà negli indirizzi dei propri lavori, quindi conviene sceglierlo breve e leggibile. Registrandosi con la posta dell'Accademia si può poi chiedere il [GitHub Student Developer Pack](https://education.github.com/pack), che dà gratuitamente il piano Pro.
 
-Al primo avvio l'agente sceglie da sé un modello gratuito, e per cambiarlo si scrive `/models` nella conversazione e si sceglie dall'elenco; per usare modelli a pagamento occorre prima collegare un account con `/connect`.
+Al primo avvio l'agente sceglie da sé un modello gratuito, e per cambiarlo si scrive `/models` nella conversazione e si sceglie dall'elenco; per usare modelli a pagamento occorre prima collegare un account con `/connect`. Se l'agente si ferma per i limiti dei modelli gratuiti, le soluzioni sono nel capitolo [Se l'agente si ferma](https://codestesie.it/guide/vscode-opencode/#9-se-lagente-si-ferma) della guida.
 
 Le scorciatoie da tastiera indicate qui e più avanti sono quelle di Windows: su macOS, al posto di `Ctrl`, si usa `Cmd`.
 
@@ -35,7 +35,7 @@ Una volta sola, all'inizio del corso. I primi due passaggi si fanno **sul sito d
    Si incolla l'indirizzo copiato, si indica la cartella dove mettere il repository e, alla domanda se aprirlo, si risponde di sì.
 4. **Personalizzare il repository con il proprio nome**, con il comando `/inizio`. \
    La chat di OpenCode, che al primo avvio è chiusa, si apre con la piccola icona di OpenCode in alto a destra nel pannello attivo: `/inizio` si scrive nel campo editabile centrale. \
-   Il comando scrive il nome nelle pagine e l'indirizzo pubblico in questo file, così gli indirizzi che si leggono qui sono già i propri. Se OpenCode chiede il permesso di eseguire qualche comando, è normale: per i comandi del corso si può rispondere di sì.
+   Il comando scrive il nome nelle pagine e l'indirizzo pubblico in questo file, così gli indirizzi che si leggono qui sono già i propri. OpenCode chiede conferma solo per poche operazioni, per esempio per modificare le proprie istruzioni: per i comandi del corso si può rispondere di sì.
 
 ## Come si lavora
 
@@ -66,7 +66,7 @@ Il primo passaggio si fa **in Visual Studio Code**, il secondo **nel browser**.
 2. **Compilare il [modulo delle consegne](https://docs.google.com/forms/d/e/1FAIpQLSe3wKbZj7PfOUy5IzgyU52e81S9aKXqTJ7kRxIzhPrDiBH10Q/viewform?usp=pp_url&entry.1318995029=TAD+2026/27)**: \
    l'esercitazione, cognome e nome, l'indirizzo appena mostrato dal comando ed eventuali note.
 
-Non è necessario nessun account Google per compilare il modulo. 
+Non è necessario nessun account Google per compilare il modulo.
 
 **La revisione arriva nella chat di Teams**, non qui. Se dopo la consegna si continua a lavorare sulla stessa esercitazione, si rifà la consegna: vale l'ultima.
 
@@ -81,6 +81,8 @@ Cinque comandi sono stati scritti per questo corso e funzionano solo in questo r
 - `/verifica es1`: confronta il lavoro con i vincoli della consegna e dice quali non sono rispettati;
 - `/consegna es1`: controlla, pubblica e ricorda l'indirizzo da segnalare;
 - `/aggiorna`: porta i file del corso all'ultima versione del modello, senza toccare le esercitazioni.
+
+Gli stessi cinque comandi funzionano anche nella chat di GitHub Copilot, per chi usa quella.
 
 Gli altri sono di OpenCode e funzionano in qualsiasi cartella. I più utili:
 
